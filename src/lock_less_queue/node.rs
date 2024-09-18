@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-// TODO: replace String with a generic type after successful phase 1
 #[derive(Clone)]
 pub struct Node {
     pub value: String,

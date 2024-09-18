@@ -6,19 +6,10 @@ use std::sync::{
 
 pub mod node;
 
-// NOTE: Design decisions : so, There is an Arc outside of AtomicPtr here because I need to share
-// the same node between head and tail some times.
-// Obviously , there can't be two atomic pointer objects pointing to the same node. It's ensured by
-// the rust compiler itself, since AtomicPtr::new takes *mut T.
-// huhuh, the joke's on me. There can be !!!
-// and not using Arc for the same reason because head and tail will be different many times.
-//
-// TODO: is there a need of public keyword here ?
 pub struct Queue {
     head: AtomicPtr<Node>,
     tail: AtomicPtr<Node>,
 }
-// TODO: in future , extend the struct with a length u32 object
 
 impl Queue {
     pub fn new(default_val: String) -> Self {
@@ -42,12 +33,7 @@ impl Queue {
             let tail_loaded = self.tail.load(Ordering::SeqCst);
 
             let mut tail_node = get_clone_value(tail_loaded);
-            // DoneTODO: is it possible to not clone the object but rather modify the member value ?
-            // no, because that will require locking, since the object is pointed by an atomic
-            // pointer not the member
 
-            // TODO: seems like ownership is not transferred in case of *mut T. Investigate further
-            // into rust's black magic powder.
             match tail_node.next {
                 None => {
                     tail_node.next = Some(node_arc.clone());
@@ -60,10 +46,6 @@ impl Queue {
                         Ordering::SeqCst,
                     ) {
                         Ok(_) => {
-                            // NOTE: this operation of setting the queue's tail as the next value
-                            // is done after the loop in the paper's pseudocode, But there
-                            // shouldn't be any difference in operations due to this re-ordering
-                            // TODO: lesser .as_ref to be used here
                             self.tail.compare_exchange(
                                 tail_loaded,
                                 Arc::into_raw(tail_node_arc.as_ref().next.as_ref().unwrap().clone())
@@ -71,7 +53,6 @@ impl Queue {
                                 Ordering::SeqCst,
                                 Ordering::SeqCst,
                             );
-                            // TODO: do any needed cleanup operations
                             break;
                         }
                         Err(_) => {}
@@ -103,7 +84,6 @@ impl Queue {
                     Some(node) => {
                         _ = self.tail.compare_exchange(
                             tail_loaded,
-                            // TODO: why and what is into needed for ?
                             Arc::into_raw(node.into()) as *mut Node,
                             Ordering::SeqCst,
                             Ordering::SeqCst,
@@ -116,16 +96,12 @@ impl Queue {
             let next = head_node.as_ref().next.as_ref().clone();
             match self.head.compare_exchange(
                 head_loaded,
-                // TODO: why is as_ref needed here?
                 Arc::into_raw(head_node.as_ref().next.as_ref().unwrap().into()) as *mut Node,
                 Ordering::SeqCst,
                 Ordering::SeqCst,
             ) {
                 Ok(_) => {
-                    // TODO: free the head pointer;
-                    // TODO: check : can I avoid this clone here ?
                     return Some(next.unwrap().value.clone());
-                    // TODO: why is unwrap needed over here ?
                 }
                 Err(_) => {}
             }
