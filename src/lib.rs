@@ -27,12 +27,16 @@ mod tests {
         // TODO: issue here is that the pogram / test runs successfully when a thread performs only
         // one operation. If there are more than one operations , then i get a use-after-heap-free
         // error
+        println!("error handling ");
         let handles = (0..2)
             .map(|j| {
                 let queue_clone = queue.clone();
                 std::thread::spawn(move || {
                     for i in 0..2 {
                         queue_clone.enqueue(format!("{}", j).to_owned());
+                    }
+                    for i in 0..1 {
+                        println!("{:?}", queue_clone.dequeue());
                     }
                 })
             })
