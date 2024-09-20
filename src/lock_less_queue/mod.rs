@@ -114,5 +114,7 @@ where
     T: Clone,
 {
     let ptr_arc = unsafe { Arc::from_raw(ptr) };
-    (*ptr_arc).clone()
+    let cloned_val = (*ptr_arc).clone();
+    let _ = Arc::into_raw(ptr_arc);
+    cloned_val
 }

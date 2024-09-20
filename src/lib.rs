@@ -22,13 +22,15 @@ mod tests {
     #[test]
     fn test_multi_threaded_queue() {
         let queue = Arc::new(Queue::new("Yo Dua Lipa".to_owned()));
-
         let handles = (0..2)
             .map(|j| {
                 let queue_clone = queue.clone();
                 std::thread::spawn(move || {
                     for i in 0..2 {
                         queue_clone.enqueue(format!("{}", j).to_owned());
+                    }
+                    for i in 0..1 {
+                        println!("{:?}", queue_clone.dequeue());
                     }
                 })
             })
