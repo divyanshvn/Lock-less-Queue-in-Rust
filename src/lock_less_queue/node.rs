@@ -1,17 +1,16 @@
-use std::sync::Arc;
+use std::{ptr, sync::atomic::AtomicPtr};
 
 // TODO: replace String with a generic type after successful phase 1
-#[derive(Clone)]
 pub struct Node {
     pub value: String,
-    pub next: Option<Arc<Node>>,
+    pub next: AtomicPtr<Option<Node>>,
 }
 
 impl Node {
     pub fn new(item: String) -> Self {
         Node {
             value: item,
-            next: None,
+            next: AtomicPtr::new(ptr::null_mut()) as AtomicPtr<Option<Node>>,
         }
     }
 }

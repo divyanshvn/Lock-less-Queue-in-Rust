@@ -28,7 +28,7 @@ mod tests {
         // one operation. If there are more than one operations , then i get a use-after-heap-free
         // error
         println!("error handling ");
-        let handles = (0..2)
+        let handles = (0..9)
             .map(|j| {
                 let queue_clone = queue.clone();
                 std::thread::spawn(move || {
