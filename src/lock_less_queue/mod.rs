@@ -1,5 +1,4 @@
 use node::Node;
-use std::ptr;
 use std::sync::{
     atomic::{AtomicPtr, Ordering},
     Arc,
@@ -38,20 +37,26 @@ impl Queue {
         loop {
             let tail_ptr = self.tail.load(Ordering::SeqCst);
             let tail_ref = unsafe { Arc::from_raw(tail_ptr) };
-            // TODO: why the fuck ????
+            // DoneTODO: why the fuck ????
+            // Because first one is for Arc to T , then next to &Option<T1> to Option<&T1>
             let tail_ref_clone_unwrapped = tail_ref.as_ref().as_ref().unwrap();
 
             let next_ptr = tail_ref_clone_unwrapped.next.load(Ordering::SeqCst);
-            // TODO: do I really need this clone ? what happens if i don't use clone ,
+            // DoneTODO: do I really need this clone ? what happens if i don't use clone ,
             // will there be some sort of memory problem ?
+            // Yes, into_raw consumes the Arc, therefore need clone because .clone() increases the
+            // ref count of the arc object.
             let new_next_ptr = Arc::into_raw(node_arc.clone()) as *mut _;
 
             // DoneTODO: is it possible to not clone the object but rather modify the member value ?
             // no, because that will require locking, since the object is pointed by an atomic
-            // pointer not the member
+            // pointer not the member WRONG WRONG WRONG
+            // Well, Joke's on me ("past me") because "recent me" did that.
 
-            // TODO: seems like ownership is not transferred in case of *mut T. Investigate further
+            // DoneTODO: seems like ownership is not transferred in case of *mut T. Investigate further
             // into rust's black magic powder.
+            // Yupp, raw pointers do not follow rust's ownership and borrow rules. These fall
+            // outside of rust's borrow checker
             match next_ptr.is_null() {
                 true => {
                     match tail_ref_clone_unwrapped.next.compare_exchange(
@@ -64,8 +69,7 @@ impl Queue {
                             // NOTE: this operation of setting the queue's tail as the next value
                             // is done after the loop in the paper's pseudocode, But there
                             // shouldn't be any difference in operations due to this re-ordering
-                            // TODO: lesser .as_ref to be used here
-                            self.tail.compare_exchange(
+                            let _ = self.tail.compare_exchange(
                                 tail_ptr,
                                 new_next_ptr,
                                 Ordering::SeqCst,
@@ -111,7 +115,6 @@ impl Queue {
                     false => {
                         _ = self.tail.compare_exchange(
                             tail_ptr,
-                            // TODO: why and what is into needed for ?
                             head_next_ptr,
                             Ordering::SeqCst,
                             Ordering::SeqCst,
